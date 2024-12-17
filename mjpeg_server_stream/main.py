@@ -1,10 +1,12 @@
+import time
+
 import cv2
 from flask import Flask, Response
 
 app = Flask(__name__)
 
 # Path to the MP4 video file
-VIDEO_SOURCE = 'shaky_video.mp4'  # Replace 'video.mp4' with the full path to your MP4 file
+VIDEO_SOURCE = 'shaky_video.mp4'  # Replace with your video file path
 
 
 def generate_mjpeg():
@@ -13,6 +15,12 @@ def generate_mjpeg():
     if not video.isOpened():
         print("Error: Could not open video file.")
         return
+
+    # Get the video's FPS (frames per second)
+    fps = video.get(cv2.CAP_PROP_FPS)
+    if fps == 0:  # Fallback if FPS can't be read
+        fps = 30
+    frame_time = 1.0 / fps  # Time per frame in seconds
 
     while True:
         success, frame = video.read()  # Read the next frame
@@ -27,6 +35,9 @@ def generate_mjpeg():
         # Send the frame in MJPEG format
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+        # Throttle to match the frame rate
+        time.sleep(frame_time)
     video.release()
 
 
